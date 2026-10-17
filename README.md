@@ -16,3 +16,12 @@ Runs the game, online matchmaking, accounts, ranks, coins and leaderboards.
 - Start: 100 coins. Win/loss changes GLORY (rank points).
 - Emperor of Rome: when an Emperor beats a lower-ranked player, the loser pays a bounty of 10 + 5 x (ranks below Emperor) coins, taken from the loser and given to the Emperor.
 - Leaderboards: `/leaderboard` (page) and `/api/leaderboard` (JSON), overall and per rank.
+
+## Shop & Armory
+- Upgrades (once per game, vs CPU): Eagle Eye 500, Second Wind 750, Aegis 1000, Phoenix Cup 1500 coins (`/api/shop`).
+- Avatars (Armory): 80 to 700 coins (`/api/avatar`).
+
+## CPU difficulty
+- Easy, Medium, Hard, Emperor. Wins and losses are scaled by Easy x0.2, Medium x0.4, Hard x1.6, Emperor x2.5.
+- Losing to a harder CPU costs more: the same multipliers apply to glory and coins lost.
+- Emperor is far more accurate than the other levels and very hard to beat.

@@ -39,20 +39,32 @@ function save() {
     catch (e) { console.error('save failed', e.message); }
   }, 400);
 }
+const AV_PRICE = { recruit: 0, murmillo: 80, thraex: 160, retiarius: 260, centurion: 400, champion: 700 };
+const ITEM_PRICE = { eagle: 500, wind: 750, aegis: 1000, phoenix: 1500 };
 const hash = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const clean = (n) => String(n || '').replace(/[^\p{L}\p{N} _.'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
-const pub = (p) => ({ id: p.id, name: p.name, glory: p.glory, coins: p.coins, w: p.w, l: p.l, streak: p.streak, best: p.best, rank: rankOf(p.glory) });
+const pub = (p) => ({ id: p.id, name: p.name, glory: p.glory, coins: p.coins, w: p.w, l: p.l, streak: p.streak, best: p.best, rank: rankOf(p.glory), av: p.av || { own: ['recruit'], sel: 'recruit' }, inv: p.inv || { eagle: 0, aegis: 0, wind: 0, phoenix: 0 } });
 const newPlayer = (id, name) => ({ id, name, glory: 0, coins: START_COINS, w: 0, l: 0, streak: 0, best: 0, created: Date.now(), last: 0 });
 
-function applyWin(p, mode, own) {
+// CPU difficulty: 0 Easy, 1 Medium, 2 Hard, 3 Emperor. Bigger rewards for beating harder CPUs, bigger losses to them.
+const DIFF_MUL = [{ w: 0.2, l: 0.2 }, { w: 0.4, l: 0.4 }, { w: 1.6, l: 1.6 }, { w: 2.5, l: 2.5 }];
+const LOSS_COINS = { '1v1': 5, '2v2': 4 };
+const dfix = (d) => Math.max(0, Math.min(3, Number(d) | 0));
+function applyWin(p, mode, own, diff) {
+  const m = DIFF_MUL[dfix(diff)].w;
   let g = GLORY_WIN[mode] + Math.max(0, Math.min(10, own | 0));
   p.w++; p.streak++; if (p.streak > p.best) p.best = p.streak; if (p.streak >= 3) g += 5;
-  const gl0 = p.glory, c0 = p.coins; p.glory += g; p.coins += COINS_WIN[mode];
+  g = Math.round(g * m);
+  const gl0 = p.glory, c0 = p.coins; p.glory += g; p.coins += Math.round(COINS_WIN[mode] * m);
   return { glory: p.glory - gl0, coins: p.coins - c0 };
 }
-function applyLoss(p, mode) {
-  const gl0 = p.glory; p.l++; p.streak = 0; p.glory = Math.max(0, p.glory - GLORY_LOSS[mode]);
-  return { glory: p.glory - gl0, coins: 0 };
+function applyLoss(p, mode, diff) {
+  const m = DIFF_MUL[dfix(diff)].l;
+  const gl0 = p.glory, c0 = p.coins;
+  p.l++; p.streak = 0;
+  p.glory = Math.max(0, p.glory - Math.round(GLORY_LOSS[mode] * m));
+  p.coins = Math.max(0, p.coins - Math.round((LOSS_COINS[mode] || 0) * m));
+  return { glory: p.glory - gl0, coins: p.coins - c0 };
 }
 
 // ---------- http helpers ----------
@@ -127,6 +139,36 @@ const server = http.createServer(async (req, res) => {
     p.last = Date.now(); save(); json(res, 200, { profile: pub(p), secret });
     return;
   }
+  if (url === '/api/avatar' && req.method === 'POST') {
+    const d = await body(req), p = authed(d.id, d.secret);
+    if (!p) { json(res, 401, { error: 'Not signed in.' }); return; }
+    const item = String(d.item || '');
+    if (!(item in AV_PRICE)) { json(res, 400, { error: 'Unknown armor.' }); return; }
+    if (!p.av) p.av = { own: ['recruit'], sel: 'recruit' };
+    if (d.action === 'buy') {
+      if (p.av.own.includes(item)) { json(res, 200, { profile: pub(p) }); return; }
+      if (p.coins < AV_PRICE[item]) { json(res, 400, { error: 'Not enough coins.', profile: pub(p) }); return; }
+      p.coins -= AV_PRICE[item]; p.av.own.push(item); p.av.sel = item;
+    } else if (p.av.own.includes(item)) p.av.sel = item;
+    else { json(res, 400, { error: 'You do not own that yet.' }); return; }
+    save(); json(res, 200, { profile: pub(p) }); return;
+  }
+  if (url === '/api/shop' && req.method === 'POST') {
+    const d = await body(req), p = authed(d.id, d.secret);
+    if (!p) { json(res, 401, { error: 'Not signed in.' }); return; }
+    const item = String(d.item || '');
+    if (!(item in ITEM_PRICE)) { json(res, 400, { error: 'Unknown item.' }); return; }
+    if (!p.inv) p.inv = { eagle: 0, aegis: 0, wind: 0, phoenix: 0 };
+    if (d.action === 'buy') {
+      if ((p.inv[item] | 0) >= 9) { json(res, 400, { error: 'You carry the maximum.', profile: pub(p) }); return; }
+      if (p.coins < ITEM_PRICE[item]) { json(res, 400, { error: 'Not enough coins.', profile: pub(p) }); return; }
+      p.coins -= ITEM_PRICE[item]; p.inv[item] = (p.inv[item] | 0) + 1;
+    } else if (d.action === 'use') {
+      if ((p.inv[item] | 0) < 1) { json(res, 400, { error: 'You have none.', profile: pub(p) }); return; }
+      p.inv[item]--;
+    } else { json(res, 400, { error: 'Bad request.' }); return; }
+    save(); json(res, 200, { profile: pub(p) }); return;
+  }
   if (url === '/api/result' && req.method === 'POST') {
     // Results against the CPU. (Matches against other players are settled by the server itself over the WebSocket.)
     const d = await body(req), p = authed(d.id, d.secret);
@@ -134,7 +176,7 @@ const server = http.createServer(async (req, res) => {
     const mode = d.mode === '2v2' ? '2v2' : '1v1', now = Date.now();
     if (now - (lastCpu[p.id] || 0) < 15000) { json(res, 429, { error: 'Too fast.', profile: pub(p) }); return; }
     lastCpu[p.id] = now; p.last = now;
-    const delta = d.win ? applyWin(p, mode, d.own) : applyLoss(p, mode);
+    const delta = d.win ? applyWin(p, mode, d.own, d.diff) : applyLoss(p, mode, d.diff);
     save(); json(res, 200, { profile: pub(p), delta });
     return;
   }
