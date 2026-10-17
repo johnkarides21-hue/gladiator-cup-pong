@@ -17,21 +17,71 @@ const INJECT = '<script>window.YANNI_WS=(location.protocol==="https:"?"wss://":"
 const RANKS = [
   ['Ludus Trainee', '🪵', 0], ['Tiro', '🗡️', 60], ['Retiarius', '🔱', 150], ['Secutor', '🛡️', 270], ['Thraex', '🏹', 420],
   ['Murmillo', '⚔️', 600], ['Hoplomachus', '🔰', 820], ['Provocator', '🔥', 1080], ['Champion of the Arena', '🏆', 1380],
-  ['Rudis Bearer (Freed)', '🕊️', 1720], ['Centurion', '🦅', 2100], ['Senator', '📜', 2520], ['Consul', '🏛️', 3000],
-  ['Caesar', '🌿', 3600], ['Emperor of Rome', '👑', 4400]];
+  ['Rudis Bearer (Freed)', '🕊️', 1720], ['Centurion', '🦅', 6000], ['Senator', '📜', 8400], ['Consul', '🏛️', 11200],
+  ['Caesar', '🌿', 14400], ['Emperor of Rome', '👑', 19000]];
 const EMPEROR = RANKS.length - 1;
 const rankOf = (g) => { let i = 0; for (let k = 0; k < RANKS.length; k++) if (g >= RANKS[k][2]) i = k; return i; };
+// Top ranks are capped: each of the top 5 classes (Centurion to Emperor) holds at most TOP_CAP players.
+// The glory figures above are the minimums. Players are ranked by glory within each class, and anyone pushed
+// past the cap drops to the next class down. This table is rebuilt from scratch on every save.
+const TOP_CAP = 50, TOP_FROM = 10;
+let rkMap = new Map();
+function assignRanks() {
+  const all = Object.values(players), m = new Map();
+  for (const p of all) m.set(p.id, Math.min(rankOf(p.glory), TOP_FROM - 1));
+  const taken = new Set();
+  for (let k = EMPEROR; k >= TOP_FROM; k--) {
+    const pool = all.filter((p) => !taken.has(p.id) && p.glory >= RANKS[k][2])
+      .sort((a, b) => b.glory - a.glory || (a.id < b.id ? -1 : 1)).slice(0, TOP_CAP);
+    for (const p of pool) { m.set(p.id, k); taken.add(p.id); }
+  }
+  rkMap = m;
+}
+const rk = (p) => (rkMap.has(p.id) ? rkMap.get(p.id) : Math.min(rankOf(p.glory), TOP_FROM - 1));
 const START_COINS = 100;
 const GLORY_WIN = { '1v1': 30, '2v2': 25, online: 40 }, GLORY_LOSS = { '1v1': 10, '2v2': 8, online: 12 };
 const COINS_WIN = { '1v1': 10, '2v2': 8, online: 25 };
 // An Emperor who beats a lower-ranked player collects a bounty from them: 10 coins, +5 for every rank they sit below the throne.
 const bounty = (loserRank) => 10 + 5 * (EMPEROR - loserRank);
+// Tribute: the ten lowest ranks (below Centurion) pay a small tribute to the Imperial Treasury after every game.
+// Against an Emperor of Rome they also pay a larger tribute straight to that Emperor. The #1 gladiator
+// receives a daily crown bonus minted by the game itself.
+const TRIBUTE_SMALL = 5, TRIBUTE_EMPEROR = 15, CROWN_BONUS = 300;
 
 // ---------- storage ----------
 let players = {};
 try { players = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { players = {}; }
+assignRanks();
+const META_FILE = path.join(path.dirname(DATA_FILE), 'meta.json');
+let meta = { treasury: 0, lastCrownDay: '' };
+try { meta = Object.assign(meta, JSON.parse(fs.readFileSync(META_FILE, 'utf8'))); } catch (e) { /* first run */ }
+function saveMeta() {
+  try { fs.mkdirSync(path.dirname(META_FILE), { recursive: true }); fs.writeFileSync(META_FILE + '.tmp', JSON.stringify(meta)); fs.renameSync(META_FILE + '.tmp', META_FILE); }
+  catch (e) { console.error('meta save failed', e.message); }
+}
+// Pays one game's tribute from a player in the bottom ten. Returns what was paid (to the treasury and to an Emperor).
+function settleTribute(p, pr, oppRank, opp) {
+  const out = { small: 0, emp: 0 };
+  if (pr >= TOP_FROM) return out;
+  out.small = Math.min(p.coins, TRIBUTE_SMALL); p.coins -= out.small; meta.treasury += out.small;
+  if (opp && oppRank === EMPEROR) { out.emp = Math.min(p.coins, TRIBUTE_EMPEROR); p.coins -= out.emp; opp.coins += out.emp; }
+  return out;
+}
+// Once per UTC day, the top-glory gladiator is crowned and receives the bonus.
+function dailyCrown() {
+  const day = new Date().toISOString().slice(0, 10);
+  if (meta.lastCrownDay === day) return;
+  const all = Object.values(players).filter((p) => p.glory > 0);
+  if (!all.length) return;
+  all.sort((a, b) => b.glory - a.glory || (a.id < b.id ? -1 : 1));
+  const top = all[0];
+  top.coins += CROWN_BONUS; meta.lastCrownDay = day; save(); saveMeta();
+  console.log('crown bonus to', top.name, 'for', day);
+}
+setInterval(dailyCrown, 60 * 1000); setTimeout(dailyCrown, 3000);
 let saveTimer = null;
 function save() {
+  assignRanks(); saveMeta();
   if (saveTimer) return;
   saveTimer = setTimeout(() => {
     saveTimer = null;
@@ -43,11 +93,11 @@ const AV_PRICE = { recruit: 0, murmillo: 80, thraex: 160, retiarius: 260, centur
 const ITEM_PRICE = { eagle: 500, wind: 750, aegis: 1000, phoenix: 1500 };
 const hash = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const clean = (n) => String(n || '').replace(/[^\p{L}\p{N} _.'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
-const pub = (p) => ({ id: p.id, name: p.name, glory: p.glory, coins: p.coins, w: p.w, l: p.l, streak: p.streak, best: p.best, rank: rankOf(p.glory), av: p.av || { own: ['recruit'], sel: 'recruit' }, inv: p.inv || { eagle: 0, aegis: 0, wind: 0, phoenix: 0 } });
+const pub = (p) => ({ id: p.id, name: p.name, glory: p.glory, coins: p.coins, w: p.w, l: p.l, streak: p.streak, best: p.best, rank: rk(p), av: p.av || { own: ['recruit'], sel: 'recruit' }, inv: p.inv || { eagle: 0, aegis: 0, wind: 0, phoenix: 0 } });
 const newPlayer = (id, name) => ({ id, name, glory: 0, coins: START_COINS, w: 0, l: 0, streak: 0, best: 0, created: Date.now(), last: 0 });
 
 // CPU difficulty: 0 Easy, 1 Medium, 2 Hard, 3 Emperor. Bigger rewards for beating harder CPUs, bigger losses to them.
-const DIFF_MUL = [{ w: 0.2, l: 0.2 }, { w: 0.4, l: 0.4 }, { w: 1.6, l: 1.6 }, { w: 2.5, l: 2.5 }];
+const DIFF_MUL = [{ w: 0.2, l: 0.2 }, { w: 0.4, l: 0.4 }, { w: 1.6, l: 2.5 }, { w: 2.5, l: 4 }];
 const LOSS_COINS = { '1v1': 5, '2v2': 4 };
 const dfix = (d) => Math.max(0, Math.min(3, Number(d) | 0));
 function applyWin(p, mode, own, diff) {
@@ -176,7 +226,9 @@ const server = http.createServer(async (req, res) => {
     const mode = d.mode === '2v2' ? '2v2' : '1v1', now = Date.now();
     if (now - (lastCpu[p.id] || 0) < 15000) { json(res, 429, { error: 'Too fast.', profile: pub(p) }); return; }
     lastCpu[p.id] = now; p.last = now;
+    const r0 = rk(p);
     const delta = d.win ? applyWin(p, mode, d.own, d.diff) : applyLoss(p, mode, d.diff);
+    const t = settleTribute(p, r0, -1, null); delta.coins -= t.small + t.emp;
     save(); json(res, 200, { profile: pub(p), delta });
     return;
   }
@@ -187,9 +239,39 @@ const server = http.createServer(async (req, res) => {
 
 // ---------- matchmaking + relay + online results ----------
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024 });
-let waiting = null;
+// Matchmaking queue. Players are paired with someone of similar glory when one is waiting. If nobody similar
+// is waiting, a player who has searched for SEARCH_WAIT ms is paired with the nearest-skill opponent available.
+let queue = [];
+const SEARCH_WAIT = 3000;
 const send = (ws, o) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
-const lite = (ws) => { const p = ws.pid && players[ws.pid]; return p ? { id: p.id, name: p.name, rank: rankOf(p.glory) } : null; };
+const skillOf = (ws) => { const p = ws.pid && players[ws.pid]; return p ? p.glory : 0; };
+const similar = (a, b) => Math.abs(skillOf(a) - skillOf(b)) <= Math.max(100, 0.15 * Math.max(skillOf(a), skillOf(b)));
+function pairUp(a, b) {
+  queue = queue.filter((x) => x !== a && x !== b);
+  a.peer = b; b.peer = a;
+  const match = { a, b, reports: {} }; a.match = match; b.match = match;
+  send(a, { type: 'matched', role: 0, opp: lite(b) }); send(b, { type: 'matched', role: 1, opp: lite(a) });
+}
+function matchmake() {
+  queue = queue.filter((w) => w.readyState === 1 && !w.peer);
+  const now = Date.now();
+  let progressed = true;
+  while (progressed && queue.length > 1) {
+    progressed = false;
+    for (const w of queue) {
+      let best = null, bd = Infinity;
+      for (const c of queue) {
+        if (c === w) continue;
+        const d = Math.abs(skillOf(w) - skillOf(c));
+        if (d < bd) { bd = d; best = c; }
+      }
+      if (!best) continue;
+      if (similar(w, best) || now - (w.joined || now) >= SEARCH_WAIT) { pairUp(w, best); progressed = true; break; }
+    }
+  }
+}
+setInterval(matchmake, 500);
+const lite = (ws) => { const p = ws.pid && players[ws.pid]; return p ? { id: p.id, name: p.name, rank: rk(p) } : null; };
 
 // A result is settled only when BOTH players report it and the reports agree (exactly one winner).
 // A lone claim of victory is never accepted; a lone "I lost" is accepted once the other player has left.
@@ -206,11 +288,13 @@ function settle(match, game) {
   } else return;
   r.done = true;
   const W = players[winner], L = players[loser]; if (!W || !L || W.id === L.id) return;
-  const wRank = rankOf(W.glory), lRank = rankOf(L.glory);
+  const wRank = rk(W), lRank = rk(L);
   const dw = applyWin(W, 'online', own), dl = applyLoss(L, 'online');
   let paid = 0;
   if (wRank === EMPEROR && lRank < EMPEROR) { paid = Math.min(L.coins, bounty(lRank)); L.coins -= paid; W.coins += paid; }
   dw.bounty = paid; dl.bounty = -paid; dw.coins += paid; dl.coins -= paid;
+  const tW = settleTribute(W, wRank, lRank, L), tL = settleTribute(L, lRank, wRank, W);
+  dw.coins += tL.emp - tW.small - tW.emp; dl.coins += tW.emp - tL.small - tL.emp;
   W.last = L.last = Date.now(); save();
   for (const s of [match.a, match.b]) {
     const me = s.pid === winner ? W : L, d = s.pid === winner ? dw : dl;
@@ -226,12 +310,9 @@ wss.on('connection', (ws) => {
     if (d.type === 'find') {
       if (ws.peer) return;
       const p = authed(d.id, d.secret); ws.pid = p ? p.id : null;
-      if (waiting && waiting !== ws && waiting.readyState === 1) {
-        const a = waiting; waiting = null;
-        a.peer = ws; ws.peer = a;
-        const match = { a, b: ws, reports: {} }; a.match = match; ws.match = match;
-        send(a, { type: 'matched', role: 0, opp: lite(ws) }); send(ws, { type: 'matched', role: 1, opp: lite(a) });
-      } else { waiting = ws; send(ws, { type: 'waiting' }); }
+      if (!queue.includes(ws)) { ws.joined = Date.now(); queue.push(ws); }
+      matchmake();
+      if (queue.includes(ws)) send(ws, { type: 'waiting' });
     } else if (d.type === 'ev' && ws.peer) {
       send(ws.peer, { type: 'ev', ev: d.ev });
     } else if (d.type === 'result' && ws.match && ws.pid) {
@@ -239,11 +320,11 @@ wss.on('connection', (ws) => {
       const r = (m.reports[g] = m.reports[g] || {});
       if (m.a.pid && m.b.pid && m.a.pid !== m.b.pid && !r[ws.pid]) { r[ws.pid] = { win: !!d.win, own: Math.max(0, Math.min(10, d.own | 0)) }; settle(m, g); }
     } else if (d.type === 'cancel') {
-      if (waiting === ws) waiting = null;
+      queue = queue.filter((x) => x !== ws);
     }
   });
   ws.on('close', () => {
-    if (waiting === ws) waiting = null;
+    queue = queue.filter((x) => x !== ws);
     if (ws.peer) {
       const p = ws.peer, m = ws.match; ws.peer = null; p.peer = null; send(p, { type: 'left' });
       // The player who stayed may have reported a loss already; settle it now that the other side is gone.
