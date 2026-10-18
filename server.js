@@ -250,7 +250,9 @@ function pairUp(a, b) {
   queue = queue.filter((x) => x !== a && x !== b);
   a.peer = b; b.peer = a;
   const match = { a, b, reports: {} }; a.match = match; b.match = match;
-  send(a, { type: 'matched', role: 0, opp: lite(b) }); send(b, { type: 'matched', role: 1, opp: lite(a) });
+  // The shared seed lets both screens agree on who shoots first, game after game, without extra messages.
+  const seed = Math.floor(Math.random() * 4294967296);
+  send(a, { type: 'matched', role: 0, opp: lite(b), seed }); send(b, { type: 'matched', role: 1, opp: lite(a), seed });
 }
 function matchmake() {
   queue = queue.filter((w) => w.readyState === 1 && !w.peer);

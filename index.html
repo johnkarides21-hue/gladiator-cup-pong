@@ -217,7 +217,7 @@ function penalty(side){return Math.min(.9,lostCups(side)*.05);}
 const DIFFC=[{n:'EASY',acc:.7,err:1.3},{n:'MEDIUM',acc:1,err:1},{n:'HARD',acc:1.9,err:.5},{n:'EMPEROR',acc:2.1,err:.35}];
 const DIFFM=[{w:.2,l:.2},{w:.4,l:.4},{w:1.6,l:2.5},{w:2.5,l:4}];
 let cpuDiff=1,diffChosen=false;
-function startCpuGame(two){if(online)leaveNet(true);twoP=false;team2=!!two;if(two)firstOwner=0;updateModeBtn();closeModes();restart();}
+function startCpuGame(two){if(online)leaveNet(true);twoP=false;team2=!!two;updateModeBtn();closeModes();restart();}
 function chooseDiff(d,two){cpuDiff=d;diffChosen=true;startCpuGame(two);}
 function diffView(view){const two=view==='diff2',W=two?25:30,C=two?8:10,GL=two?8:10,LC=two?4:5;
  const L=[{k:0,n:'EASY',t:'A gladiator in training',h:1,c:'easy',i:'🗡️'},{k:1,n:'MEDIUM',t:'A seasoned legionary',h:2,c:'med',i:'⚔️'},{k:2,n:'HARD',t:'A veteran of the arena',h:3,c:'hard',i:'🛡️'},{k:3,n:'EMPEROR',t:'Only the mightiest survive',h:4,c:'emp',i:'👑'}];
@@ -252,6 +252,9 @@ function tFire(o){return team2&&(o===0?pFire:cFire).every(Boolean);}
 function pname(i){return team2?'Team '+(i+1):'Player '+(i+1);}
 function who(){return team2?(turn===0?(tShot===0?'You':'Your partner'):'CPU '+(tShot+1)):pname(whoNow);}
 function isCpuShooter(){return team2&&!(whoNow===0&&tShot===0);}
+// Online games: both players derive who shoots first from a shared seed, so each game is random and matches on both screens.
+function firstShooterFor(seed,g){let t=((seed>>>0)^Math.imul(g+1,0x9E3779B9))>>>0;t=Math.imul(t^(t>>>16),0x85EBCA6B)>>>0;t=Math.imul(t^(t>>>13),0xC2B2AE35)>>>0;return (t^(t>>>16))&1;}
+function pairSeed(a,b){const s=[String(a),String(b)].sort().join('|');let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h;}
 function bbPop(ti,sub){let e=document.getElementById('bbpop');if(!e){e=document.createElement('div');e.id='bbpop';e.className='endcard';e.style.pointerEvents='none';e.style.top='40%';e.innerHTML='<h2 style="font-size:30px;margin:0;white-space:nowrap">🔥 BRING-BACK!</h2><p style="margin:6px 0 0">Both made it. Shoot again!</p>';document.getElementById('stage').appendChild(e);}e.querySelector('h2').textContent=ti||'🔥 BRING-BACK!';e.querySelector('p').textContent=sub||'Both made it. Shoot again!';e.hidden=false;e.style.animation='none';e.offsetWidth;e.style.animation='';sound('sink');clearTimeout(window._bbT);window._bbT=setTimeout(()=>{e.hidden=true;},2200);}
 function beginShooter(){hideHandoff();_uiKey='';if(isCpuShooter()){phase='tcpu';timer=1.5;setMessage(who()+' is lining up a shot…'+(cpuSquidUsed?'':' Tap SQUID to defend!'));}else{phase='ready';setMessage('You (Player 1), swipe up to throw. Your aim decides where it lands.');}updateHud();updateLoner();}
 function nextTeammate(pre){tShot=1;ball=null;updateHud();_uiKey='';if(turn===0){phase='tcpu';timer=1.3;setMessage((pre||'')+'Your partner is lining up a shot…');}else{phase='cpu';timer=1.2;setMessage((pre||'')+'The CPU teammate is lining up a shot…');}updateLoner();}
@@ -302,12 +305,12 @@ function netPump(){let g=12;while(net.queue.length&&g--){const ev=net.queue[0];i
 function netStatus(t){const m=document.getElementById('modemsg');if(m)m.textContent=t;}
 function netFail(t){net.mm=false;net.tok=null;killPeer();online=false;net.state='off';if(net.room){try{net.room.leave();}catch(e){}}net.room=null;netStatus(t);if(phase==='lobby'){restart();}updateModeBtn();}
 function killPeer(){if(net.ntfy){const n=net.ntfy;net.ntfy=null;try{n.bye&&n.bye();}catch(e){}try{n.stop();}catch(e){}}if(net.ws){const w=net.ws;net.ws=null;try{w.close();}catch(e){}}if(net.conn){try{net.conn.close();}catch(e){}}if(net.peer){try{net.peer.destroy();}catch(e){}}net.peer=null;net.conn=null;}
-function startNetGame(role){net.state='playing';net.role=role;net.game=0;net.seq=0;net.log=[];net.queue=[];net.applying=true;try{restart();}finally{net.applying=false;}closeModes();updateModeBtn();
+function startNetGame(role,seed){net.state='playing';net.role=role;net.seed=(seed>>>0);net.game=0;net.seq=0;net.log=[];net.queue=[];net.applying=true;try{restart();}finally{net.applying=false;}closeModes();updateModeBtn();
  setMessage('Connected! You are Player '+(role+1)+'. '+(role===0?'You shoot first.':'Your opponent shoots first.'));}
 function adoptConn(c,role,onFull){net.conn=c;let started=false;
- const go=()=>{if(started)return;started=true;net.queue=[];startNetGame(role);};
- c.on('open',()=>{if(role===0){try{c.send({t:'hi'});}catch(e){}go();}});
- c.on('data',d=>{if(!d||typeof d!=='object')return;if(d.t==='hi'){if(role===1)go();return;}if(d.t==='full'){if(onFull)onFull();else netFail('That room already has two players.');return;}if(d.t&&started)net.queue.push(d);});
+ const go=(sd)=>{if(started)return;started=true;net.queue=[];startNetGame(role,sd);};
+ c.on('open',()=>{if(role===0){const sd=Math.floor(Math.random()*4294967296);try{c.send({t:'hi',seed:sd});}catch(e){}go(sd);}});
+ c.on('data',d=>{if(!d||typeof d!=='object')return;if(d.t==='hi'){if(role===1)go(d.seed);return;}if(d.t==='full'){if(onFull)onFull();else netFail('That room already has two players.');return;}if(d.t&&started)net.queue.push(d);});
  c.on('close',()=>{if(net.conn===c&&net.state==='playing')oppLeft('Your opponent left.');});
  c.on('error',()=>{if(net.conn===c&&net.state==='playing')oppLeft('Connection lost.');});}
 function peerOpts(){return window.PEER_OPTS||{debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]}};}
@@ -321,7 +324,7 @@ function findMatchWS(){
  ws.onopen=()=>{if(stale())return;clearTimeout(slow);try{ws.send(JSON.stringify({type:'find',id:me&&me.server?me.id:undefined,secret:me&&me.server?me.secret:undefined}));}catch(e){}};
  ws.onmessage=m=>{if(stale())return;let d;try{d=JSON.parse(m.data);}catch(e){return;}
   if(d.type==='waiting'){net.state='waiting';netStatus('Searching… waiting for another player to tap Find match.');setMessage('Searching for an opponent…');updateModeBtn();}
-  else if(d.type==='matched'){net.queue=[];net.opp=d.opp||null;startNetGame(d.role);}
+  else if(d.type==='matched'){net.queue=[];net.opp=d.opp||null;startNetGame(d.role,d.seed);}
   else if(d.type==='profile'){applyServerResult(d.profile,d.delta||{glory:0,coins:0,bounty:0},d.vs);}
   else if(d.type==='ev'&&net.state==='playing'&&d.ev)net.queue.push(d.ev);
   else if(d.type==='left'){if(net.state==='playing')oppLeft('Your opponent left.');}};
@@ -341,7 +344,7 @@ function findMatchNtfy(){
  const resume=()=>{if(stale()||N.started)return;if(N.roomES){try{N.roomES.close();}catch(e){}N.roomES=null;}N.matched=false;N.roomTopic=null;netStatus('Searching… waiting for another player to tap Find match.');};
  const joinRoom=(room,role)=>{N.matched=true;N.roomTopic='yanni-pong-'+room;let seen=false;
   N.roomES=sub(N.roomTopic,'1m',o=>{if(stale()||o.id===me)return;N.lastRx=Date.now();
-    if(o.t==='hi'){if(!seen){seen=true;}if(!N.started){N.started=true;N.seq=0;N.lastN=0;N.rx={};net.queue=[];startNetGame(role);pub(N.roomTopic,{t:'hi',id:me});
+    if(o.t==='hi'){if(!seen){seen=true;}if(!N.started){N.started=true;N.seq=0;N.lastN=0;N.rx={};net.queue=[];startNetGame(role,pairSeed(me,o.id));pub(N.roomTopic,{t:'hi',id:me});
       N.timers.push(setInterval(()=>{if(stale())return;pub(N.roomTopic,{t:'p',id:me},0);if(Date.now()-N.lastRx>70000)oppLeft('Your opponent left.');},20000));}}
     else if(o.t==='ev'&&N.started&&o.n>N.lastN){N.rx[o.n]=o.ev;while(N.rx[N.lastN+1]){net.queue.push(N.rx[N.lastN+1]);delete N.rx[N.lastN+1];N.lastN++;}}
     else if(o.t==='bye'&&N.started)oppLeft('Your opponent left.');});
@@ -411,11 +414,11 @@ function onNetPeers(ch){if(!net.room)return;const ps=ch.peers.filter(p=>p.kind==
  const opp=ord[1-mi];
  if(!opp){if(net.state==='playing')oppLeft('Your opponent left the room.');return;}
  if(net.oppPeer!==opp.peer){net.oppPeer=opp.peer;net.lastN=0;net.queue=[];}
- if(net.state!=='playing')startNetGame(mi);
+ if(net.state!=='playing')startNetGame(mi,pairSeed(ord[0].peer,ord[1].peer));
  const log=(opp.presence&&opp.presence.log)||[];for(const ev of log){if(ev&&ev.n>net.lastN){net.queue.push(ev);net.lastN=ev.n;}}}
 function oppLeft(msg){if(net.mm){setMessage(msg+' Searching for a new opponent…');findMatch();return;}net.state='waiting';net.oppPeer=null;net.conn=null;net.queue=[];ball=null;phase='lobby';setMessage(msg+' Waiting for them to rejoin (or switch mode).');netStatus(msg);updateModeBtn();}
 function leaveNet(quiet){net.tok=null;net.mm=false;killPeer();if(net.room){try{net.room.leave();}catch(e){}}net.room=null;net.state='off';online=false;net.queue=[];if(!quiet)restart();updateModeBtn();}
-function updateModeBtn(){const b=document.getElementById('modebtn');const f=document.getElementById('firstbtn');if(f)f.style.display=(online||team2)?'none':'';}
+function updateModeBtn(){const b=document.getElementById('modebtn');const f=document.getElementById('firstbtn');if(f)f.style.display='none';}
 function closeModes(){const e=document.getElementById('modecard'),d=document.getElementById('modeback');if(e)e.hidden=true;if(d)d.hidden=true;}
 function openModes(view){let e=document.getElementById('modecard'),bd=document.getElementById('modeback');if(!bd){bd=document.createElement('div');bd.id='modeback';document.getElementById('stage').appendChild(bd);bd.onclick=()=>{if(!window._menuStart)closeModes();};}
  if(!e){e=document.createElement('div');e.id='modecard';document.getElementById('stage').appendChild(e);}e.className='endcard menu';e.style.top='';e.style.width='';e.style.animation='none';
@@ -776,7 +779,7 @@ c.addEventListener('pointerup',e=>{if(!drag||phase!=='ready')return;const p=coor
  applyAssist(L);eagleArmed=false;
  const v=velocityFor(L.x,L.z,0);launch(v.vx,v.vz,v.vy,0);if(lonerArmed&&called){ball.called=called;lonerUsed=true;lonerArmed=false;called=null;updateLoner();setMessage('Loner called. Ball in flight…');}
 });
-{const _r0=restart;restart=function(){if(team2)firstOwner=0;pStreak=[0,0];cStreak=[0,0];pFire=[false,false];cFire=[false,false];if(online&&net.state==='playing'){if(!net.applying){net.game++;sendEv({t:'new',game:net.game});}firstOwner=(net.role===net.game%2)?0:1;}_r0();hideHandoff();if(online&&net.state!=='playing'){phase='lobby';}tShot=0;tMade=0;const _bb=document.getElementById('bbpop');if(_bb)_bb.hidden=true;if(team2)firstOwner=0;if(twoP){whoNow=0;firstHuman=firstOwner;turn=0;phase='ready';timer=0;if(firstOwner===1){swapSides();whoNow=1;phase='handoff';showHandoff(pname(1)+' shoots first. Pass the phone.');updateHud();updateLoner();setMessage('');}else{setMessage(team2?'Team 1: you shoot first, then your CPU partner. Both make it for a BRING-BACK!':'Player 1, swipe up to throw. Your aim decides where it lands.');}}if(team2&&!twoP)setMessage('Team 1: you shoot first, then your CPU partner. Both make it for a BRING-BACK!');updateHud();};}
+{const _r0=restart;restart=function(){pStreak=[0,0];cStreak=[0,0];pFire=[false,false];cFire=[false,false];if(online&&net.state==='playing'){if(!net.applying){net.game++;sendEv({t:'new',game:net.game});}firstOwner=(firstShooterFor(net.seed,net.game)===net.role)?0:1;}if(!online)firstOwner=Math.random()<.5?0:1;_r0();hideHandoff();if(online&&net.state!=='playing'){phase='lobby';}if(team2&&firstOwner===1){swapSides();whoNow=1;turn=1;phase='tcpu';timer=2.2;setMessage('CPU team shoots first…');}tShot=0;tMade=0;const _bb=document.getElementById('bbpop');if(_bb)_bb.hidden=true;if(twoP){whoNow=0;firstHuman=firstOwner;turn=0;phase='ready';timer=0;if(firstOwner===1){swapSides();whoNow=1;phase='handoff';showHandoff(pname(1)+' shoots first. Pass the phone.');updateHud();updateLoner();setMessage('');}else{setMessage(team2?'Team 1: you shoot first, then your CPU partner. Both make it for a BRING-BACK!':'Player 1, swipe up to throw. Your aim decides where it lands.');}}if(team2&&!twoP&&firstOwner===0)setMessage('Team 1: you shoot first, then your CPU partner. Both make it for a BRING-BACK!');updateHud();};}
 
 // ===== Login + gladiator ranks =====
 // To turn on real "Sign in with Google": create an OAuth Web Client ID in Google Cloud Console
