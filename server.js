@@ -93,7 +93,7 @@ const AV_PRICE = { recruit: 0, murmillo: 80, thraex: 160, retiarius: 260, centur
 const ITEM_PRICE = { eagle: 500, wind: 750, aegis: 1000, phoenix: 1500 };
 const hash = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const clean = (n) => String(n || '').replace(/[^\p{L}\p{N} _.'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
-const pub = (p) => ({ id: p.id, name: p.name, glory: p.glory, coins: p.coins, w: p.w, l: p.l, streak: p.streak, best: p.best, rank: rk(p), av: p.av || { own: ['recruit'], sel: 'recruit' }, inv: p.inv || { eagle: 0, aegis: 0, wind: 0, phoenix: 0 } });
+const pub = (p) => ({ id: p.id, name: p.name, puzzleBest: p.puzzleBest || 0, glory: p.glory, coins: p.coins, w: p.w, l: p.l, streak: p.streak, best: p.best, rank: rk(p), av: p.av || { own: ['recruit'], sel: 'recruit' }, inv: p.inv || { eagle: 0, aegis: 0, wind: 0, phoenix: 0 } });
 const newPlayer = (id, name) => ({ id, name, glory: 0, coins: START_COINS, w: 0, l: 0, streak: 0, best: 0, created: Date.now(), last: 0 });
 
 // CPU difficulty: 0 Easy, 1 Medium, 2 Hard, 3 Emperor. Bigger rewards for beating harder CPUs, bigger losses to them.
@@ -115,6 +115,26 @@ function applyLoss(p, mode, diff) {
   p.glory = Math.max(0, p.glory - Math.round(GLORY_LOSS[mode] * m));
   p.coins = Math.max(0, p.coins - Math.round((LOSS_COINS[mode] || 0) * m));
   return { glory: p.glory - gl0, coins: p.coins - c0 };
+}
+
+// ---------- rank movement (who you passed after a game) ----------
+// Everyone ordered by glory, highest first. Ties go to the lower id so the order is stable.
+function standingOrder() { return Object.values(players).sort((x, y) => y.glory - x.glory || (x.id < y.id ? -1 : 1)).map((p) => p.id); }
+// Where a player stood before and after a game, and which players they passed or were passed by.
+function rankMove(id, before, after) {
+  const ia = new Map(before.map((v, i) => [v, i])), ib = new Map(after.map((v, i) => [v, i]));
+  const m0 = ia.get(id), m1 = ib.get(id);
+  const passed = [], passedBy = [];
+  for (const x of before) {
+    if (x === id) continue;
+    const x0 = ia.get(x), x1 = ib.get(x);
+    if (x0 < m0 && x1 > m1) passed.push(x);
+    else if (x0 > m0 && x1 < m1) passedBy.push(x);
+  }
+  const nm = (x) => (players[x] ? players[x].name : 'Gladiator');
+  return { before: m0 + 1, after: m1 + 1, total: after.length,
+    passed: passed.length, passedBy: passedBy.length,
+    passedNames: passed.slice(0, 8).map(nm), passedByNames: passedBy.slice(0, 8).map(nm) };
 }
 
 // ---------- http helpers ----------
@@ -219,6 +239,16 @@ const server = http.createServer(async (req, res) => {
     } else { json(res, 400, { error: 'Bad request.' }); return; }
     save(); json(res, 200, { profile: pub(p) }); return;
   }
+  if (url === '/api/puzzle' && req.method === 'POST') {
+    // The Trials: a reward only for the next level after your best, so a level can't be farmed.
+    const d = await body(req), p = authed(d.id, d.secret);
+    if (!p) { json(res, 401, { error: 'Not signed in.' }); return; }
+    const lv = d.level | 0, best = p.puzzleBest || 0;
+    let delta = { glory: 0, coins: 0 };
+    if (lv === best + 1 && lv <= 500) { p.puzzleBest = lv; p.glory += 1; p.coins += 1; delta = { glory: 1, coins: 1 }; save(); }
+    json(res, 200, { profile: pub(p), delta });
+    return;
+  }
   if (url === '/api/result' && req.method === 'POST') {
     // Results against the CPU. (Matches against other players are settled by the server itself over the WebSocket.)
     const d = await body(req), p = authed(d.id, d.secret);
@@ -226,10 +256,10 @@ const server = http.createServer(async (req, res) => {
     const mode = d.mode === '2v2' ? '2v2' : '1v1', now = Date.now();
     if (now - (lastCpu[p.id] || 0) < 15000) { json(res, 429, { error: 'Too fast.', profile: pub(p) }); return; }
     lastCpu[p.id] = now; p.last = now;
-    const r0 = rk(p);
+    const r0 = rk(p), ord0 = standingOrder();
     const delta = d.win ? applyWin(p, mode, d.own, d.diff) : applyLoss(p, mode, d.diff);
     const t = settleTribute(p, r0, -1, null); delta.coins -= t.small + t.emp;
-    save(); json(res, 200, { profile: pub(p), delta });
+    save(); json(res, 200, { profile: pub(p), delta, rank: rankMove(p.id, ord0, standingOrder()) });
     return;
   }
   const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8').replace('<head>', '<head>' + INJECT);
@@ -291,16 +321,58 @@ function settle(match, game) {
   r.done = true;
   const W = players[winner], L = players[loser]; if (!W || !L || W.id === L.id) return;
   const wRank = rk(W), lRank = rk(L);
+  const ord0 = standingOrder();
   const dw = applyWin(W, 'online', own), dl = applyLoss(L, 'online');
   let paid = 0;
   if (wRank === EMPEROR && lRank < EMPEROR) { paid = Math.min(L.coins, bounty(lRank)); L.coins -= paid; W.coins += paid; }
   dw.bounty = paid; dl.bounty = -paid; dw.coins += paid; dl.coins -= paid;
   const tW = settleTribute(W, wRank, lRank, L), tL = settleTribute(L, lRank, wRank, W);
   dw.coins += tL.emp - tW.small - tW.emp; dl.coins += tW.emp - tL.small - tL.emp;
-  W.last = L.last = Date.now(); save();
+  W.last = L.last = Date.now(); const ord1 = standingOrder(); save();
   for (const s of [match.a, match.b]) {
     const me = s.pid === winner ? W : L, d = s.pid === winner ? dw : dl;
-    send(s, { type: 'profile', profile: pub(me), delta: d, win: s.pid === winner, vs: s.pid === winner ? L.name : W.name });
+    send(s, { type: 'profile', profile: pub(me), delta: d, win: s.pid === winner, vs: s.pid === winner ? L.name : W.name, rank: rankMove(me.id, ord0, ord1) });
+  }
+}
+
+// ===== Online 2v2: four players in two teams. Seats 0,1 = team A, seats 2,3 = team B. =====
+let queue2 = [];
+const seatTeam = (i) => (i < 2 ? 0 : 1);
+function matchmake2() {
+  queue2 = queue2.filter((w) => w.readyState === 1 && !w.quad);
+  while (queue2.length >= 4) {
+    const seats = queue2.splice(0, 4);
+    const quad = { seats, reports: {}, done: {} };
+    const seed = Math.floor(Math.random() * 4294967296);
+    const lites = seats.map((s) => lite(s) || { id: null, name: 'Gladiator', rank: 0 });
+    seats.forEach((s, i) => { s.quad = quad; s.seat = i; s.peer = null; });
+    seats.forEach((s, i) => send(s, { type: 'matched2', seat: i, seed, team: seatTeam(i), names: lites.map((l) => l.name), players: lites }));
+  }
+}
+setInterval(matchmake2, 500);
+// A 2v2 result settles only when all four seats report the same winning team.
+function settle2(q, g) {
+  const r = q.reports[g];
+  if (!r || q.done[g] || Object.keys(r).length < 4) return;
+  q.done[g] = true;
+  const winners = new Set([0, 1, 2, 3].map((i) => (r[i].win ? seatTeam(i) : 1 - seatTeam(i))));
+  if (winners.size !== 1) return;
+  const wt = [...winners][0];
+  const ord0 = standingOrder();
+  const dels = [];
+  for (let i = 0; i < 4; i++) {
+    const p = q.seats[i].pid && players[q.seats[i].pid];
+    if (!p) { dels[i] = null; continue; }
+    const own = Math.max(0, Math.min(10, r[i].own | 0));
+    dels[i] = seatTeam(i) === wt ? applyWin(p, 'online', own) : applyLoss(p, 'online');
+    p.last = Date.now();
+  }
+  const ord1 = standingOrder(); save();
+  for (let i = 0; i < 4; i++) {
+    const p = q.seats[i].pid && players[q.seats[i].pid];
+    if (!p) continue;
+    const rivals = q.seats.filter((_, j) => seatTeam(j) !== seatTeam(i)).map((s) => (lite(s) || { name: 'Gladiator' }).name);
+    send(q.seats[i], { type: 'profile', profile: pub(p), delta: dels[i], win: seatTeam(i) === wt, vs: rivals.join(' & '), rank: rankMove(p.id, ord0, ord1) });
   }
 }
 
@@ -315,6 +387,18 @@ wss.on('connection', (ws) => {
       if (!queue.includes(ws)) { ws.joined = Date.now(); queue.push(ws); }
       matchmake();
       if (queue.includes(ws)) send(ws, { type: 'waiting' });
+    } else if (d.type === 'find2') {
+      if (ws.quad || ws.peer) return;
+      const p = authed(d.id, d.secret); ws.pid = p ? p.id : null;
+      if (!queue2.includes(ws)) { ws.joined = Date.now(); queue2.push(ws); }
+      matchmake2();
+      if (queue2.includes(ws)) send(ws, { type: 'waiting' });
+    } else if (d.type === 'ev' && ws.quad) {
+      for (const s of ws.quad.seats) if (s !== ws) send(s, { type: 'ev', ev: Object.assign({}, d.ev, { from: ws.seat }) });
+    } else if (d.type === 'result2' && ws.quad && ws.seat !== undefined) {
+      const q = ws.quad, g = String(d.game | 0);
+      const r = (q.reports[g] = q.reports[g] || {});
+      if (!r[ws.seat]) { r[ws.seat] = { win: !!d.win, own: d.own | 0 }; settle2(q, g); }
     } else if (d.type === 'ev' && ws.peer) {
       send(ws.peer, { type: 'ev', ev: d.ev });
     } else if (d.type === 'result' && ws.match && ws.pid) {
@@ -322,11 +406,12 @@ wss.on('connection', (ws) => {
       const r = (m.reports[g] = m.reports[g] || {});
       if (m.a.pid && m.b.pid && m.a.pid !== m.b.pid && !r[ws.pid]) { r[ws.pid] = { win: !!d.win, own: Math.max(0, Math.min(10, d.own | 0)) }; settle(m, g); }
     } else if (d.type === 'cancel') {
-      queue = queue.filter((x) => x !== ws);
+      queue = queue.filter((x) => x !== ws); queue2 = queue2.filter((x) => x !== ws);
     }
   });
   ws.on('close', () => {
-    queue = queue.filter((x) => x !== ws);
+    queue = queue.filter((x) => x !== ws); queue2 = queue2.filter((x) => x !== ws);
+    if (ws.quad) { for (const s of ws.quad.seats) if (s !== ws) send(s, { type: 'left' }); }
     if (ws.peer) {
       const p = ws.peer, m = ws.match; ws.peer = null; p.peer = null; send(p, { type: 'left' });
       // The player who stayed may have reported a loss already; settle it now that the other side is gone.

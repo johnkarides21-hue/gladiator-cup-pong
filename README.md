@@ -17,6 +17,8 @@ Runs the game, online matchmaking, accounts, ranks, coins and leaderboards.
 - Top 5 ranks are minimums: Centurion 6,000 glory, Senator 8,400, Consul 11,200, Caesar 14,400, Emperor of Rome 19,000.
 - Each of the top 5 classes holds at most 50 players. The top 50 by glory hold the class. A 51st player takes the class's place and the lowest-glory player in that class drops to the next rank down (glory is kept, so they can climb back).
 - Online matchmaking pairs players of similar glory: within 100 glory, or 15% of the higher player's glory. If nobody similar is waiting, a player who has searched for 3 seconds is matched with the nearest-skill opponent available.
+- The Trials also have moving cups (level 6+, sway while you aim and until the shot is made; these levels give 2 extra shots), bigger or smaller cups and ball (level 9+), and levels where the ball must bounce before it drops in (level 12+). Fire music is off in The Trials.
+- The Trials (puzzle mode): endless set-up shots. Each level shows its rules before it starts. Clearing a level you haven't beaten before gives +1 glory and +1 coin. Only the next level after your best is rewarded (`POST /api/puzzle`), so levels can't be farmed.
 - First shot is random in every mode. Each game, the server's shared seed decides who shoots first, so both players agree.
 - Tribute: the ten lowest ranks (Ludus Trainee to Rudis Bearer) pay 5 coins to the Imperial Treasury after every game, win or lose. Against an Emperor of Rome they also pay 15 coins straight to that Emperor. Constants: `TRIBUTE_SMALL`, `TRIBUTE_EMPEROR`.
 - Crown: once per UTC day the top-glory gladiator receives 300 coins, paid by the game itself (`CROWN_BONUS`). The treasury total is saved in `meta.json` beside the player file.
