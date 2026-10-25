@@ -53,7 +53,7 @@ button.alt{background:linear-gradient(#5a4631,#3a2a1b)!important;color:#f0dcb0!i
 #loner.off,#rerack.off,#squid.off,#bounce.off,#swat.off{background:#3a2a1b!important;color:#a99373!important;border-color:#5a4631!important}
 #loner.ready,#rerack.ready,#squid.ready,#bounce.ready,#swat.ready{outline:3px solid #f2d27a!important}#bounce.armed{outline:3px solid #7fd1ff!important;box-shadow:0 0 12px #7fd1ff!important}#swat.armed{outline:3px solid #7fd1ff!important;box-shadow:0 0 12px #7fd1ff!important}#swathand{position:fixed;left:50%;top:42%;font-size:96px;pointer-events:none;z-index:30;opacity:0;transform:translate(-50%,-50%);line-height:1}#swathand.on{animation:swatA .5s ease-out forwards}#swathand.miss{filter:grayscale(1)}
 #swathand.cpu{top:24%;filter:hue-rotate(-50deg) saturate(1.7) drop-shadow(0 0 10px #ff4d3d)}#swathand.cpu.miss{filter:grayscale(1) drop-shadow(0 0 6px #ff4d3d)}
-#swathand.cpu::after{content:'CPU SWAT';display:block;width:max-content;margin:6px auto 0;font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:2px;color:#ffe3dc;background:#3a0c08e6;border:1px solid #ff6a55;padding:2px 10px;border-radius:999px;text-shadow:none;filter:none}#rankfx{position:fixed;inset:0;background:radial-gradient(circle at 50% 40%,rgba(120,60,15,.55),rgba(8,4,2,.9));display:flex;align-items:center;justify-content:center;z-index:50;animation:rfFade .2s ease-out}@keyframes rfFade{from{opacity:0}to{opacity:1}}.rfbox{background:linear-gradient(160deg,#3a1d08,#1d0c03 70%);border:2px solid #f2d27a;border-radius:18px;padding:16px 18px 14px;min-width:270px;max-width:90vw;text-align:center;color:#f7ecd6;box-shadow:0 0 0 1px #6b4310,0 12px 40px rgba(242,210,122,.25);animation:rfPop .3s cubic-bezier(.2,1.4,.4,1)}@keyframes rfPop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}.rfh{font-size:12px;letter-spacing:4px;color:#f2d27a;font-weight:800}.rfmain{display:flex;align-items:center;gap:18px;justify-content:center;margin:10px 0 4px}.rfladder{position:relative;width:14px;height:170px}.rfrail{position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;border-radius:2px;background:linear-gradient(#f2d27a,#8a5a1c 60%,#3a2410)}.rforb{position:absolute;left:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff7d1,#f2d27a 45%,#c8923a);box-shadow:0 0 14px 4px rgba(242,210,122,.7);transition:top .75s cubic-bezier(.2,.8,.2,1)}.rfspark{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2px 0 0 -2px;border-radius:50%;background:#ffe08e;box-shadow:0 0 6px #ffe08e;opacity:0;animation:rfSpark .7s ease-out forwards}@keyframes rfSpark{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}.rfcol{text-align:left;min-width:110px}.rfnum{font-size:58px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 #6b4310}.rfar{font-size:20px;font-weight:900;margin-top:4px}.rfar.up{color:#9be38a;text-shadow:0 0 10px rgba(155,227,138,.6)}.rfar.down{color:#ff9b8a}.rfar.flat{color:#c9a977}.rfsub{font-size:12px;color:#c9a977;margin-top:2px}#rfl{display:flex;flex-direction:column;gap:6px;margin-top:10px}.rfchip{font-size:14px;font-weight:700;padding:6px 12px;border-radius:999px;opacity:0;transform:translateX(40px);animation:rfChip .3s cubic-bezier(.2,.9,.3,1.1) forwards;text-align:left}@keyframes rfChip{to{opacity:1;transform:none}}.rfchip.up{background:rgba(155,227,138,.16);border:1px solid #9be38a;color:#c9f5b8}.rfchip.down{background:rgba(255,155,138,.14);border:1px solid #ff9b8a;color:#ffc2b5}.rfchip.flat{background:rgba(201,169,119,.12);border:1px solid #c9a977;color:#e6d3b0}.rfhint{margin-top:12px;font-size:11px;color:#a99373;letter-spacing:1px}@keyframes swatA{0%{opacity:0;transform:translate(calc(-50% + var(--sx,0px)),-50%) scale(.6)}35%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+#swathand.cpu::after{content:attr(data-label);display:block;width:max-content;margin:6px auto 0;font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:2px;color:#ffe3dc;background:#3a0c08e6;border:1px solid #ff6a55;padding:2px 10px;border-radius:999px;text-shadow:none;filter:none}#rankfx{position:fixed;inset:0;background:radial-gradient(circle at 50% 40%,rgba(120,60,15,.55),rgba(8,4,2,.9));display:flex;align-items:center;justify-content:center;z-index:50;animation:rfFade .2s ease-out}@keyframes rfFade{from{opacity:0}to{opacity:1}}.rfbox{background:linear-gradient(160deg,#3a1d08,#1d0c03 70%);border:2px solid #f2d27a;border-radius:18px;padding:16px 18px 14px;min-width:270px;max-width:90vw;text-align:center;color:#f7ecd6;box-shadow:0 0 0 1px #6b4310,0 12px 40px rgba(242,210,122,.25);animation:rfPop .3s cubic-bezier(.2,1.4,.4,1)}@keyframes rfPop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}.rfh{font-size:12px;letter-spacing:4px;color:#f2d27a;font-weight:800}.rfmain{display:flex;align-items:center;gap:18px;justify-content:center;margin:10px 0 4px}.rfladder{position:relative;width:14px;height:170px}.rfrail{position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;border-radius:2px;background:linear-gradient(#f2d27a,#8a5a1c 60%,#3a2410)}.rforb{position:absolute;left:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff7d1,#f2d27a 45%,#c8923a);box-shadow:0 0 14px 4px rgba(242,210,122,.7);transition:top .75s cubic-bezier(.2,.8,.2,1)}.rfspark{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2px 0 0 -2px;border-radius:50%;background:#ffe08e;box-shadow:0 0 6px #ffe08e;opacity:0;animation:rfSpark .7s ease-out forwards}@keyframes rfSpark{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}.rfcol{text-align:left;min-width:110px}.rfnum{font-size:58px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 #6b4310}.rfar{font-size:20px;font-weight:900;margin-top:4px}.rfar.up{color:#9be38a;text-shadow:0 0 10px rgba(155,227,138,.6)}.rfar.down{color:#ff9b8a}.rfar.flat{color:#c9a977}.rfsub{font-size:12px;color:#c9a977;margin-top:2px}#rfl{display:flex;flex-direction:column;gap:6px;margin-top:10px}.rfchip{font-size:14px;font-weight:700;padding:6px 12px;border-radius:999px;opacity:0;transform:translateX(40px);animation:rfChip .3s cubic-bezier(.2,.9,.3,1.1) forwards;text-align:left}@keyframes rfChip{to{opacity:1;transform:none}}.rfchip.up{background:rgba(155,227,138,.16);border:1px solid #9be38a;color:#c9f5b8}.rfchip.down{background:rgba(255,155,138,.14);border:1px solid #ff9b8a;color:#ffc2b5}.rfchip.flat{background:rgba(201,169,119,.12);border:1px solid #c9a977;color:#e6d3b0}.rfhint{margin-top:12px;font-size:11px;color:#a99373;letter-spacing:1px}@keyframes swatA{0%{opacity:0;transform:translate(calc(-50% + var(--sx,0px)),-50%) scale(.6)}35%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
 #rerackMenu button{background:#f4e6bd!important}
 .endcard{background:linear-gradient(#2b1a0ef2,#150b05f2)!important;border:3px solid var(--gold)!important;box-shadow:0 10px 40px #000c,0 0 30px #d9a93b66!important;font-family:Cinzel,Georgia,serif}
 .endcard h2{color:var(--gold2)!important;font-family:Cinzel,Georgia,serif;text-shadow:0 2px 0 #5a2a05}
@@ -217,14 +217,14 @@ function bounceFor(landX,landZ,owner){const sz=owner===0?.45:9.55,dz=landZ-sz;le
 let swatUsed=false,swatArmed=false,swatDown=null;let cpuBounceUsed=false,cpuSwatUsed=false;
 const SWAT_Z0=3.0,SWAT_Z1=4.4;
 function swatWindow(b){return !!b&&b.owner===1&&!b.done&&phase!=='sinking'&&b.z>=SWAT_Z0&&b.z<=SWAT_Z1;}
-function swatAvail(){return !swatUsed&&!online&&!puzzleOn&&turn===1&&(phase==='cpu'||phase==='tcpu'||(!!ball&&ball.owner===1&&!ball.done));}
+function swatAvail(){return !swatUsed&&!(online&&net.mode2)&&!puzzleOn&&turn===1&&(phase==='cpu'||phase==='tcpu'||(!!ball&&ball.owner===1&&!ball.done));}
 function toggleSwat(){if(swatUsed)return;
  if(swatArmed){swatArmed=false;setMessage('Swat cancelled.');return;}
  if(!swatAvail()){setMessage('Swat is a defense button: use it while the CPU is shooting, once per game.');return;}
  swatArmed=true;setMessage('✋ SWAT ready. Watch the ball and swipe left or right as it passes.');}
-function showSwatHand(dir,hit,cpu){let el=document.getElementById('swathand');
+function showSwatHand(dir,hit,cpu,label){let el=document.getElementById('swathand');
  if(!el){el=document.createElement('div');el.id='swathand';document.body.appendChild(el);}
- el.textContent='✋';el.classList.toggle('miss',!hit);el.classList.toggle('cpu',!!cpu);
+ el.textContent='✋';el.classList.toggle('miss',!hit);el.classList.toggle('cpu',!!cpu);el.setAttribute('data-label',label||'CPU SWAT');
  el.style.setProperty('--sx',(dir>0?-160:160)+'px');
  el.classList.remove('on');void el.offsetWidth;el.classList.add('on');}
 // The CPU swats your ball once per game, in the mirror of your own swat window (near its own cups).
@@ -235,6 +235,7 @@ function cpuSwatCheck(){const b=ball;const emp=cpuDiff===3;if(!b||b.done||b.owne
  else setMessage('✋ The CPU swings and whiffs.');}
 function swingSwat(dir){if(!swatArmed)return;swatArmed=false;swatUsed=true;
  const b=ball,hit=swatWindow(b);showSwatHand(dir,hit);
+ if(online&&!net.mode2){sendEv({t:'swat',dir:dir,hit:hit});if(hit&&b&&b.replay){b.replay.off=[dir*1.0,0];b.rtarget=null;}}
  if(hit){b.vx+=dir*6;b.vz*=.35;b.swatted=true;buzz(25);setMessage('✋ SWAT! The hand slaps the ball off line.');}
  else setMessage(b&&!b.done?'✋ Wrong moment! The hand whiffs.':'✋ The hand whiffs.');
  updateSwatBtn(true);}
@@ -281,7 +282,7 @@ function updateSwatBtn(force){const sw=document.getElementById('swat');if(!sw)re
  if(win&&ball&&!ball.swatPrompt){ball.swatPrompt=true;setMessage('✋ SWIPE LEFT OR RIGHT NOW!');}
  const key=[swatUsed,swatArmed,av,!!puzzleOn,!!online,win].join();
  if(key===_swatKey&&!force)return;_swatKey=key;
- sw.hidden=!!puzzleOn||!!online;
+ sw.hidden=!!puzzleOn||!!(online&&net.mode2);
  sw.textContent=swatUsed?'✋ USED':swatArmed?'✋ READY':'✋ SWAT';sw.disabled=swatUsed;
  sw.classList.toggle('armed',swatArmed);sw.classList.toggle('ready',av&&!swatArmed);sw.classList.toggle('off',!swatUsed&&!av&&!swatArmed);}
 function updateLoner(){updateBounce();const b=$('loner'),r=$('rerack');if(!b||!r)return;
@@ -393,19 +394,25 @@ function encPts(a){let px=0,py=0,pz=0,o=[];for(const p of a){const x=Math.round(
 function decPts(s){const n=String(s||'').split(',').map(Number);const o=[];let x=0,y=0,z=0;for(let i=0;i+2<n.length;i+=3){x+=n[i];y+=n[i+1];z+=n[i+2];o.push([x/1000,y/1000,z/1000]);}return o;}
 function sendEv(ev){if(net.state!=='playing')return;if(net.ntfy){net.ntfy.send(ev);return;}if(net.ws){try{net.ws.send(JSON.stringify({type:'ev',ev}));}catch(e){}return;}if(net.conn){try{net.conn.send(ev);}catch(e){}return;}if(!net.room)return;net.seq++;ev.n=net.seq;net.log.push(ev);while(net.log.length>1&&JSON.stringify(net.log).length>3400)net.log.shift();net.room.presence({log:net.log}).catch(()=>{});}
 function sendShot(b,cup){if(!online||b.owner!==0||b.sent||!b.rec)return;b.sent=true;b.rec.push([b.x,b.y,b.z]);let pts=b.rec;while(pts.length>110)pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);let ep=encPts(pts);while(ep.length>2600&&pts.length>12){pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);ep=encPts(pts);}
- sendEv({t:'shot',pts:ep,sink:rankFar(cup),called:rankFar(b.called)});}
-function endReplay(b){const c=b.rtarget;if(c&&c.alive){b.x=c.x;b.z=c.z;startSink(b,c,c.x,c.z);}else{b.done=true;b.missed=true;phase='result';timer=.5;setMessage('Opponent missed.');}}
+ sendEv({t:'shot',pts:ep,sink:rankFar(cup),called:rankFar(b.called),bounce:!!b.bounceAim});}
+function endReplay(b){const c=b.rtarget;if(online&&!net.mode2&&b.owner===1)sendEv({t:'verdict',sink:!!(c&&c.alive)});if(c&&c.alive){b.x=c.x;b.z=c.z;startSink(b,c,c.x,c.z);}else{b.done=true;b.missed=true;phase='result';timer=.5;setMessage('Opponent missed.');}}
 function playOppShot(ev){const pts=decPts(ev.pts).map(p=>[-p[0],p[1],10-p[2]]);if(!pts.length)pts.push([0,.48,9.55]);if(pts.length<2)pts.push(pts[0]);
  const tg=nearByRank(ev.sink),called=nearByRank(ev.called),last=pts[pts.length-1];cpuLastMade=false;if(called)cpuLonerUsed=true;
- ball={fire:cpuOnFire,x:pts[0][0],y:pts[0][1],z:pts[0][2],vx:0,vy:0,vz:0,owner:1,done:false,trail:[],age:0,hitGround:false,rest:0,sinkCup:null,called:called,rtarget:tg,replay:{pts,clock:0,off:tg?[tg.x-last[0],tg.z-last[2]]:null}};
+ ball={fire:cpuOnFire,x:pts[0][0],y:pts[0][1],z:pts[0][2],vx:0,vy:0,vz:0,owner:1,done:false,trail:[],age:0,hitGround:false,rest:0,sinkCup:null,called:called,bounceAim:!!ev.bounce,rtarget:tg,replay:{pts,clock:0,off:tg?[tg.x-last[0],tg.z-last[2]]:null}};
  phase='flight';cpuCall=null;setMessage('Opponent shooting…');}
-function canProcess(ev){if(net.mode2){if(ev.t==='shot')return (phase==='cpu'||phase==='tcpu')&&!ball;if(ev.t==='rerack'||ev.t==='squid')return (phase==='cpu'||phase==='tcpu'||phase==='ready')&&!ball;if(ev.t==='pick')return phase==='await-pick';return true;}if(ev.t==='shot')return phase==='cpu'&&!ball;if(ev.t==='rerack')return phase==='cpu';if(ev.t==='pick')return phase==='await-pick';return true;}
+function canProcess(ev){if(net.mode2){if(ev.t==='shot')return (phase==='cpu'||phase==='tcpu')&&!ball;if(ev.t==='rerack'||ev.t==='squid')return (phase==='cpu'||phase==='tcpu'||phase==='ready')&&!ball;if(ev.t==='pick')return phase==='await-pick'||!ball;return true;}if(ev.t==='shot')return phase==='cpu'&&!ball;if(ev.t==='rerack')return phase==='cpu';if(ev.t==='pick')return phase==='await-pick'||!ball;return true;}
 function processEv(ev){ if(net.mode2){processEv2(ev);return;}
  if(ev.t==='shot')playOppShot(ev);
  else if(ev.t==='rerack'){cpuRerackUsed=true;rackCups('near',ev.kind);setMessage('Opponent re-racked your cups into a '+ev.kind+'!');}
  else if(ev.t==='squid'){cpuSquidUsed=true;inkFar=1;sprayInk('far');setMessage('🦑 Opponent defends with SQUID! Your next shot will be harder to aim.');}
- else if(ev.t==='pick'){const x=nearByRank(ev.r);if(x){removeCup(x);lastSunk=x;updateHud();setMessage('🗡️ Opponent made a Loner! Two of your cups are gone.');}phase='result';timer=.1;}
+ else if(ev.t==='pick'){const x=nearByRank(ev.r);if(x){removeCup(x);lastSunk=x;updateHud();setMessage('🗡️ Opponent made a Loner! Two of your cups are gone.');}if(phase==='await-pick'){phase='result';timer=.1;}}
+ else if(ev.t==='swat'){applyRivalSwat(ev);}
+ else if(ev.t==='verdict'){applyVerdict(ev);}
  else if(ev.t==='new'){net.game=ev.game;net.applying=true;try{restart();}finally{net.applying=false;}}}
+function applyVerdict(ev){if(!(phase==='swatwait'&&ball&&ball.owner===0))return;ball.verdict=!!ev.sink;}
+function applyRivalSwat(ev){const dir=ev.dir,hit=!!ev.hit;if(!(phase==='swatwait'&&ball&&ball.owner===0))return;
+ showSwatHand(dir,hit,true,'RIVAL SWAT');
+ if(hit){ball.swatBlocked=true;setMessage('✋ The rival swats your shot off the cup!');}else setMessage('✋ The rival swings and whiffs.');}
 function netPump(){let g=12;while(net.queue.length&&g--){const ev=net.queue[0];if(!canProcess(ev))break;net.queue.shift();processEv(ev);}}
 // ===== Online 2v2 (four phones, two teams of two). Seats 0,1 = team A, seats 2,3 = team B.
 // Every phone runs the same team turn engine as offline 2v2: turn 0 is its own team, tShot is the shooter's slot.
@@ -467,14 +474,16 @@ function playShot2(ev){
  if(!pts.length)pts.push([0,.48,ownerL===0?.45:9.55]);if(pts.length<2)pts.push(pts[0]);
  const tg=remoteCup(ev.sink,ownerL),called=remoteCup(ev.called,ownerL),last=pts[pts.length-1];
  if(ownerL===0){lastShotMade=false;if(called)lonerUsed=true;}else{cpuLastMade=false;if(called)cpuLonerUsed=true;}
- ball={fire:sFire(ownerL),tfire:tFire(ownerL),x:pts[0][0],y:pts[0][1],z:pts[0][2],vx:0,vy:0,vz:0,owner:ownerL,remote:true,done:false,trail:[],age:0,hitGround:false,rest:0,sinkCup:null,called:called,rtarget:tg,replay:{pts,clock:0,off:tg?[tg.x-last[0],tg.z-last[2]]:null}};
+ ball={fire:sFire(ownerL),tfire:tFire(ownerL),x:pts[0][0],y:pts[0][1],z:pts[0][2],vx:0,vy:0,vz:0,owner:ownerL,remote:true,done:false,trail:[],age:0,hitGround:false,rest:0,sinkCup:null,called:called,bounceAim:!!ev.bounce,rtarget:tg,replay:{pts,clock:0,off:tg?[tg.x-last[0],tg.z-last[2]]:null}};
  phase='flight';cpuCall=null;setMessage(ownerL===0?'Your teammate is shooting…':'Opponent shooting…');}
 function processEv2(ev){
  const from=ev.from|0,mine=seatTeam(from)===net.myTeam;
  if(ev.t==='shot')playShot2(ev);
  else if(ev.t==='rerack'){if(mine)rerackUsed=true;else cpuRerackUsed=true;rackCups(mine?'far':'near',ev.kind);setMessage(mine?'Your teammate re-racked the rival cups into a '+ev.kind+'!':'Opponent re-racked your cups into a '+ev.kind+'!');}
  else if(ev.t==='squid'){if(mine){squidUsed=true;inkNear=1;sprayInk('near');setMessage('🦑 Your teammate defends with SQUID!');}else{cpuSquidUsed=true;inkFar=1;sprayInk('far');setMessage('🦑 Opponent defends with SQUID! Your next shot will be harder to aim.');}}
- else if(ev.t==='pick'){const x=remoteCup(ev.r,mine?0:1);if(x){removeCup(x);lastSunk=x;updateHud();setMessage(mine?'🗡️ Your teammate made a Loner! Two rival cups are gone.':'🗡️ Opponent made a Loner! Two of your cups are gone.');}phase='result';timer=.1;}
+ else if(ev.t==='pick'){const x=remoteCup(ev.r,mine?0:1);if(x){removeCup(x);lastSunk=x;updateHud();setMessage(mine?'🗡️ Your teammate made a Loner! Two rival cups are gone.':'🗡️ Opponent made a Loner! Two of your cups are gone.');}if(phase==='await-pick'){phase='result';timer=.1;}}
+ else if(ev.t==='swat'){applyRivalSwat(ev);}
+ else if(ev.t==='verdict'){applyVerdict(ev);}
  else if(ev.t==='new'){if((ev.game|0)<=net.game)return;net.game=ev.game|0;net.applying=true;try{restart();}finally{net.applying=false;}}}
 function netStatus(t){const m=document.getElementById('modemsg');if(m)m.textContent=t;}
 function netFail(t){net.mm=false;net.mode2=false;hideRoster2();net.tok=null;killPeer();online=false;net.state='off';if(net.room){try{net.room.leave();}catch(e){}}net.room=null;netStatus(t);if(phase==='lobby'){restart();}updateModeBtn();}
@@ -828,7 +837,13 @@ function cpuShot(){
  if(!cpuBounceUsed&&!online&&!puzzleOn&&!practiceOn&&Math.random()<.3){const bv=bounceFor(target.x+lateral,target.z+depth,1);if(bv){cpuBounceUsed=true;launch(bv.vx,bv.vz,bv.vy,1);ball.bounceAim=true;if(cpuCall){ball.called=cpuCall;cpuLonerUsed=true;cpuCall=null;}setMessage('CPU lines up a BOUNCE shot…');return;}}
  const v=velocityFor(target.x+lateral,target.z+depth,1);launch(v.vx,v.vz,v.vy,1);if(cpuCall){ball.called=cpuCall;cpuLonerUsed=true;cpuCall=null;setMessage('CPU shoots its Loner…');}
 }
-function startSink(b,cup,cx,cz){if(b.owner===0)buzz([35,45,35]);if(online&&b.rec&&!b.sent)sendShot(b,cup);b.done=true;phase='sinking';b.sinkCup=cup;b.sinkTime=0;b.sx=cx;b.sz=cz;b.x=cx;b.z=cz;b.y=RIM;sound('sink');setMessage('Ball dropping into the cup…');}
+function startSink(b,cup,cx,cz){
+ if(online&&!net.mode2&&b.owner===0&&b.rec&&!b.sent){
+  sendShot(b,cup);const n=Math.min(b.rec.length,110);
+  b.swatHoldCup=cup;b.swatHoldX=cx;b.swatHoldZ=cz;b.swatHoldT=0;b.holdAt=Date.now();b.swatBlocked=false;b.swatHoldDur=(Math.max(2,n)-1)/30/1.25+0.6;
+  b.done=true;phase='swatwait';setMessage('Waiting for the rival…');return;}
+ startSinkReal(b,cup,cx,cz);}
+function startSinkReal(b,cup,cx,cz){if(b.owner===0)buzz([35,45,35]);if(online&&b.rec&&!b.sent)sendShot(b,cup);b.done=true;phase='sinking';b.sinkCup=cup;b.sinkTime=0;b.sx=cx;b.sz=cz;b.x=cx;b.z=cz;b.y=RIM;sound('sink');setMessage('Ball dropping into the cup…');}
 function miss(b,txt){if(!b.missed){b.missed=true;setMessage(txt);}}
 // One fixed physics substep. Small steps keep fast balls from tunnelling through rims.
 // Each cup is a tapered cylinder (narrow base, wide mouth) with a rim ring at its top edge.
@@ -880,6 +895,7 @@ function physics(b,h){
  if(b.y<=GROUND+.001&&b.vy===0&&onTable){const k=Math.exp(-.9*h);b.vx*=k;b.vz*=k;}
 }
 function step(dt){if(net.mode2)enforce2();cpuSwatCheck();
+ if(phase==='swatwait'&&ball){ball.swatHoldT+=dt;const b=ball;if(b.verdict!==undefined){if(b.verdict)startSinkReal(b,b.swatHoldCup,b.swatHoldX,b.swatHoldZ);else{b.missed=true;b.done=true;phase='result';timer=.5;setMessage(b.swatBlocked?'✋ The rival swatted your shot off the cup!':'Missed.');}}else if(Date.now()-(b.holdAt||(b.holdAt=Date.now()))>15000)startSinkReal(b,b.swatHoldCup,b.swatHoldX,b.swatHoldZ);return;}
  if(phase==='ready'||phase==='over'||phase==='pick'||phase==='handoff'||phase==='lobby'||phase==='await-pick'){return;}
  if(phase==='tcpu'){if(online)return;timer-=dt;if(timer<=0)teamCpuShot();return;}
  if(phase==='cpu'){if(online)return;timer-=dt;if(timer<=0)cpuShot();return;}
