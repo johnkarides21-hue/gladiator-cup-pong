@@ -155,7 +155,7 @@ function sound(type,vol){if(!soundOn)return;try{ac=ac||new(window.AudioContext||
  else if(type==='sink'){tick(t,.4);plastic(t+.01,.3,700);let tt=t+.08,gap=.075,g=.34;for(let i=0;i<7;i++){tick(tt,g);ping(tt,880,620,.035,g*.55);tt+=gap;gap*=.72;g*=.74;}}
  else{tick(t,.2);}
  }catch(e){}if(ball&&ball.fire&&(type==='rim'||type==='cup'||type==='sink'))fireBurst(type);}
-function restart(){playerMade=0;bounceUsed=false;bounceArmed=false;swatUsed=false;swatArmed=false;cpuBounceUsed=false;cpuSwatUsed=false;hideEnd();cups=[...makeCups('far'),...makeCups('near')];fading=[];turn=firstOwner;ball=null;drag=null;phase=firstOwner===0?'ready':'cpu';particles=[];timer=firstOwner===0?0:2.8;lonerUsed=false;lonerArmed=false;called=null;inRebuttal=false;rebuttalHit=false;pendingCup=null;lastSunk=null;rerackUsed=false;cpuLonerUsed=false;cpuRerackUsed=false;cpuCall=null;sprayT.near=null;sprayT.far=null;squidUsed=false;cpuSquidUsed=false;inkNear=0;inkFar=0;streak=0;onFire=false;cpuStreak=0;cpuOnFire=false;cpuLastMade=false;lastShotMade=false;itemUsed={eagle:0,aegis:0,wind:0,phoenix:0};eagleArmed=false;windArmed=false;aegisArmed=false;closeItems();closeRerack();_uiKey='';updateLoner();aimUI(0);$('power').style.width='0%';setMessage(firstOwner===0?'Swipe up from the ball to throw. Your aim decides where it lands, so you can miss.':'CPU shoots first…');updateHud();}
+function restart(){playerMade=0;bounceUsed=false;bounceArmed=false;swatUsed=false;shieldUsed=false;swatArmed=false;cpuBounceUsed=false;cpuSwatUsed=false;hideEnd();cups=[...makeCups('far'),...makeCups('near')];fading=[];turn=firstOwner;ball=null;drag=null;phase=firstOwner===0?'ready':'cpu';particles=[];timer=firstOwner===0?0:2.8;lonerUsed=false;lonerArmed=false;called=null;inRebuttal=false;rebuttalHit=false;pendingCup=null;lastSunk=null;rerackUsed=false;cpuLonerUsed=false;cpuRerackUsed=false;cpuCall=null;sprayT.near=null;sprayT.far=null;squidUsed=false;cpuSquidUsed=false;inkNear=0;inkFar=0;streak=0;onFire=false;cpuStreak=0;cpuOnFire=false;cpuLastMade=false;lastShotMade=false;itemUsed={eagle:0,aegis:0,wind:0,phoenix:0};eagleArmed=false;windArmed=false;aegisArmed=false;closeItems();closeRerack();_uiKey='';updateLoner();aimUI(0);$('power').style.width='0%';setMessage(firstOwner===0?'Swipe up from the ball to throw. Your aim decides where it lands, so you can miss.':'CPU shoots first…');updateHud();}
 function updateHud(){if(puzzleOn){trialHud();return;}$('mine').textContent=cups.filter(v=>v.side==='near'&&v.alive).length;$('theirs').textContent=cups.filter(v=>v.side==='far'&&v.alive).length;$('turn').textContent=turn===0?'YOUR SHOT':'CPU SHOT';hudNames();}
 function showEnd(win,note){let e=document.getElementById('endcard');if(!e){e=document.createElement('div');e.id='endcard';e.className='endcard';e.innerHTML='<h2></h2><p></p><button onclick="restart()">⚔️ Fight again</button>';document.getElementById('stage').appendChild(e);}e.className='endcard'+(win?'':' lose');e.querySelector('h2').textContent=note?note.toUpperCase()+' WINS!':(win?'⚔️ VICTORY!':(online?'DEFEAT':'DEFEAT'));e.querySelector('h2').style.fontSize=note?'28px':'';e.querySelector('p').textContent=win?'The crowd roars your name! Fight again?':'The crowd falls silent. Seek revenge?';e.hidden=false;e.style.animation='none';e.offsetWidth;e.style.animation='';}
 function hideEnd(){const e=document.getElementById('endcard');if(e)e.hidden=true;}
@@ -214,11 +214,17 @@ function bounceFor(landX,landZ,owner){const sz=owner===0?.45:9.55,dz=landZ-sz;le
   else if(ok===best.ok&&(ok?Math.abs(apex-BOUNCE_APEX)<Math.abs(best.apex-BOUNCE_APEX):clear>best.clear))best=cand;
  }
  return best;}
-let swatUsed=false,swatArmed=false,swatDown=null;let cpuBounceUsed=false,cpuSwatUsed=false;
+let swatUsed=false,swatArmed=false,swatDown=null;let shieldUsed=false;let cpuBounceUsed=false,cpuSwatUsed=false;
 const SWAT_Z0=3.0,SWAT_Z1=4.4;
 function swatWindow(b){return !!b&&b.owner===1&&!b.done&&phase!=='sinking'&&b.z>=SWAT_Z0&&b.z<=SWAT_Z1;}
-function swatAvail(){return !swatUsed&&!(online&&net.mode2)&&!puzzleOn&&turn===1&&(phase==='cpu'||phase==='tcpu'||(!!ball&&ball.owner===1&&!ball.done));}
-function toggleSwat(){if(swatUsed)return;
+function swatAvail(){return !swatUsed&&!online&&!puzzleOn&&turn===1&&(phase==='cpu'||phase==='tcpu'||(!!ball&&ball.owner===1&&!ball.done));}
+function activateShield(){if(!online||net.mode2||shieldUsed)return;
+ if(!(phase==='ready'&&!ball&&turn===0)){setMessage('Raise your shield on your turn, before you shoot.');return;}
+ const l=aliveSorted('near');if(!l.length)return;
+ const k=Math.ceil(l.length/2),ranks=[];for(let i=0;i<k;i++){l[i].shield=true;ranks.push(i);}
+ shieldUsed=true;sendEv({t:'shield',ranks:ranks});buzz(20);setMessage('🛡️ Shield up! Half your cups are protected for one shot.');updateSwatBtn(true);}
+function applyRemoteShield(ev){const l=aliveSorted('far');(ev.ranks||[]).forEach(i=>{const c=l[l.length-1-i];if(c)c.shield=true;});setMessage('🛡️ Opponent raised a shield over half their cups!');}
+function toggleSwat(){if(online&&!net.mode2){activateShield();return;}if(swatUsed)return;
  if(swatArmed){swatArmed=false;setMessage('Swat cancelled.');return;}
  if(!swatAvail()){setMessage('Swat is a defense button: use it while the CPU is shooting, once per game.');return;}
  swatArmed=true;setMessage('✋ SWAT ready. Watch the ball and swipe left or right as it passes.');}
@@ -277,6 +283,7 @@ function showRankFx(info,win){
 }
 let _swatKey='';
 function updateSwatBtn(force){const sw=document.getElementById('swat');if(!sw)return;
+ if(online&&!net.mode2){const dis=shieldUsed||!(phase==='ready'&&!ball&&turn===0);sw.hidden=false;sw.textContent=shieldUsed?'🛡️ USED':'🛡️ SHIELD';sw.disabled=dis;sw.classList.remove('armed');sw.classList.toggle('ready',!dis);sw.classList.toggle('off',dis);_swatKey='';return;}
  if(swatArmed&&turn===0)swatArmed=false;
  const av=swatAvail(),win=swatArmed&&swatWindow(ball);
  if(win&&ball&&!ball.swatPrompt){ball.swatPrompt=true;setMessage('✋ SWIPE LEFT OR RIGHT NOW!');}
@@ -301,6 +308,7 @@ function toggleRerackMenu(){const m=$('rerackMenu');if(rerackUsed)return;
  m.hidden=!m.hidden;}
 function closeRerack(){const m=$('rerackMenu');if(m)m.hidden=true;}
 function rackCups(side,kind){
+ cups.forEach(v=>{if(v.side===side)v.shield=false;});
  const mine=cups.filter(v=>v.alive&&v.side===side),n=mine.length;
  const F=kind==='line'?null:FORM[kind][n];let rows=kind==='line'?Array(n).fill(1):F;if(F&&F[0]>F[F.length-1])rows=[...F].reverse();
  const dz=kind==='line'?.5:.57,R=rows.length,slots=[];
@@ -395,7 +403,7 @@ function decPts(s){const n=String(s||'').split(',').map(Number);const o=[];let x
 function sendEv(ev){if(net.state!=='playing')return;if(net.ntfy){net.ntfy.send(ev);return;}if(net.ws){try{net.ws.send(JSON.stringify({type:'ev',ev}));}catch(e){}return;}if(net.conn){try{net.conn.send(ev);}catch(e){}return;}if(!net.room)return;net.seq++;ev.n=net.seq;net.log.push(ev);while(net.log.length>1&&JSON.stringify(net.log).length>3400)net.log.shift();net.room.presence({log:net.log}).catch(()=>{});}
 function sendShot(b,cup){if(!online||b.owner!==0||b.sent||!b.rec)return;b.sent=true;b.rec.push([b.x,b.y,b.z]);let pts=b.rec;while(pts.length>110)pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);let ep=encPts(pts);while(ep.length>2600&&pts.length>12){pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);ep=encPts(pts);}
  sendEv({t:'shot',pts:ep,sink:rankFar(cup),called:rankFar(b.called),bounce:!!b.bounceAim});}
-function endReplay(b){const c=b.rtarget;if(online&&!net.mode2&&b.owner===1)sendEv({t:'verdict',sink:!!(c&&c.alive)});if(c&&c.alive){b.x=c.x;b.z=c.z;startSink(b,c,c.x,c.z);}else{b.done=true;b.missed=true;phase='result';timer=.5;setMessage('Opponent missed.');}}
+function endReplay(b){const c=b.rtarget;const shielded=!!(c&&c.alive&&c.shield&&online&&!net.mode2&&b.owner===1);if(online&&!net.mode2&&b.owner===1)sendEv({t:'verdict',sink:!!(c&&c.alive)&&!shielded});if(shielded){b.done=true;b.missed=true;phase='result';timer=.5;buzz(20);setMessage('🛡️ Blocked by your shield!');return;}if(c&&c.alive){b.x=c.x;b.z=c.z;startSink(b,c,c.x,c.z);}else{b.done=true;b.missed=true;phase='result';timer=.5;setMessage('Opponent missed.');}}
 function playOppShot(ev){const pts=decPts(ev.pts).map(p=>[-p[0],p[1],10-p[2]]);if(!pts.length)pts.push([0,.48,9.55]);if(pts.length<2)pts.push(pts[0]);
  const tg=nearByRank(ev.sink),called=nearByRank(ev.called),last=pts[pts.length-1];cpuLastMade=false;if(called)cpuLonerUsed=true;
  ball={fire:cpuOnFire,x:pts[0][0],y:pts[0][1],z:pts[0][2],vx:0,vy:0,vz:0,owner:1,done:false,trail:[],age:0,hitGround:false,rest:0,sinkCup:null,called:called,bounceAim:!!ev.bounce,rtarget:tg,replay:{pts,clock:0,off:tg?[tg.x-last[0],tg.z-last[2]]:null}};
@@ -408,6 +416,7 @@ function processEv(ev){ if(net.mode2){processEv2(ev);return;}
  else if(ev.t==='pick'){const x=nearByRank(ev.r);if(x){removeCup(x);lastSunk=x;updateHud();setMessage('🗡️ Opponent made a Loner! Two of your cups are gone.');}if(phase==='await-pick'){phase='result';timer=.1;}}
  else if(ev.t==='swat'){applyRivalSwat(ev);}
  else if(ev.t==='verdict'){applyVerdict(ev);}
+ else if(ev.t==='shield'){applyRemoteShield(ev);}
  else if(ev.t==='new'){net.game=ev.game;net.applying=true;try{restart();}finally{net.applying=false;}}}
 function applyVerdict(ev){if(!(phase==='swatwait'&&ball&&ball.owner===0))return;ball.verdict=!!ev.sink;}
 function applyRivalSwat(ev){const dir=ev.dir,hit=!!ev.hit;if(!(phase==='swatwait'&&ball&&ball.owner===0))return;
@@ -838,10 +847,8 @@ function cpuShot(){
  const v=velocityFor(target.x+lateral,target.z+depth,1);launch(v.vx,v.vz,v.vy,1);if(cpuCall){ball.called=cpuCall;cpuLonerUsed=true;cpuCall=null;setMessage('CPU shoots its Loner…');}
 }
 function startSink(b,cup,cx,cz){
- if(online&&!net.mode2&&b.owner===0&&b.rec&&!b.sent){
-  sendShot(b,cup);const n=Math.min(b.rec.length,110);
-  b.swatHoldCup=cup;b.swatHoldX=cx;b.swatHoldZ=cz;b.swatHoldT=0;b.holdAt=Date.now();b.swatBlocked=false;b.swatHoldDur=(Math.max(2,n)-1)/30/1.25+0.6;
-  b.done=true;phase='swatwait';setMessage('Waiting for the rival…');return;}
+ if(online&&!net.mode2&&b.owner===0&&cup&&cup.shield){
+  sendShot(b,cup);b.done=true;b.missed=true;phase='result';timer=.5;buzz(20);setMessage('🛡️ Blocked by a shield!');return;}
  startSinkReal(b,cup,cx,cz);}
 function startSinkReal(b,cup,cx,cz){if(b.owner===0)buzz([35,45,35]);if(online&&b.rec&&!b.sent)sendShot(b,cup);b.done=true;phase='sinking';b.sinkCup=cup;b.sinkTime=0;b.sx=cx;b.sz=cz;b.x=cx;b.z=cz;b.y=RIM;sound('sink');setMessage('Ball dropping into the cup…');}
 function miss(b,txt){if(!b.missed){b.missed=true;setMessage(txt);}}
@@ -895,7 +902,7 @@ function physics(b,h){
  if(b.y<=GROUND+.001&&b.vy===0&&onTable){const k=Math.exp(-.9*h);b.vx*=k;b.vz*=k;}
 }
 function step(dt){if(net.mode2)enforce2();cpuSwatCheck();
- if(phase==='swatwait'&&ball){ball.swatHoldT+=dt;const b=ball;if(b.verdict!==undefined){if(b.verdict)startSinkReal(b,b.swatHoldCup,b.swatHoldX,b.swatHoldZ);else{b.missed=true;b.done=true;phase='result';timer=.5;setMessage(b.swatBlocked?'✋ The rival swatted your shot off the cup!':'Missed.');}}else if(Date.now()-(b.holdAt||(b.holdAt=Date.now()))>15000)startSinkReal(b,b.swatHoldCup,b.swatHoldX,b.swatHoldZ);return;}
+ if(phase==='swatwait'&&ball){ball.swatHoldT+=dt;const b=ball;if(b.verdict!==undefined){if(b.verdict)startSinkReal(b,b.swatHoldCup,b.swatHoldX,b.swatHoldZ);else{b.missed=true;b.done=true;phase='result';timer=.5;setMessage(b.swatBlocked?'✋ The rival swatted your shot off the cup!':'Blocked or missed.');}}else if(Date.now()-(b.holdAt||(b.holdAt=Date.now()))>15000)startSinkReal(b,b.swatHoldCup,b.swatHoldX,b.swatHoldZ);return;}
  if(phase==='ready'||phase==='over'||phase==='pick'||phase==='handoff'||phase==='lobby'||phase==='await-pick'){return;}
  if(phase==='tcpu'){if(online)return;timer-=dt;if(timer<=0)teamCpuShot();return;}
  if(phase==='cpu'){if(online)return;timer-=dt;if(timer<=0)cpuShot();return;}
@@ -935,6 +942,7 @@ function ellipse(x,y,rx,ry,fill,stroke,line=1){g.beginPath();g.ellipse(x,y,rx,ry
 function poly(pts,fill,stroke){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle=fill;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=3;g.stroke();}}
 function drawCup(v){
  const p=cupGeom(v),r=p.r*1.12,h=p.h*1.12,top=p.y-h;
+ if(v.shield&&v.alive){g.save();g.beginPath();g.ellipse(p.x,top+h*.5,r*1.9,r*1.25,0,0,TAU);g.fillStyle='rgba(120,220,255,.28)';g.fill();g.lineWidth=2.5;g.strokeStyle='rgba(190,245,255,.9)';g.stroke();g.restore();}
  if(v.glow&&v.alive){g.save();g.globalAlpha=.6+.25*Math.sin(performance.now()/260);g.beginPath();g.arc(p.x,top+h*.45,r*1.9,0,TAU);g.fillStyle='rgba(255,210,90,.5)';g.fill();g.restore();}
  // Authentic glossy red party-cup silhouette: wide rolled lip, tapered base, stepped molded rings.
  ellipse(p.x+3,p.y+4,r*.75,r*.22,'#0007');
