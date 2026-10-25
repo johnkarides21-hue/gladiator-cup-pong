@@ -403,7 +403,7 @@ function decPts(s){const n=String(s||'').split(',').map(Number);const o=[];let x
 function sendEv(ev){if(net.state!=='playing')return;if(net.ntfy){net.ntfy.send(ev);return;}if(net.ws){try{net.ws.send(JSON.stringify({type:'ev',ev}));}catch(e){}return;}if(net.conn){try{net.conn.send(ev);}catch(e){}return;}if(!net.room)return;net.seq++;ev.n=net.seq;net.log.push(ev);while(net.log.length>1&&JSON.stringify(net.log).length>3400)net.log.shift();net.room.presence({log:net.log}).catch(()=>{});}
 function sendShot(b,cup){if(!online||b.owner!==0||b.sent||!b.rec)return;b.sent=true;b.rec.push([b.x,b.y,b.z]);let pts=b.rec;while(pts.length>110)pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);let ep=encPts(pts);while(ep.length>2600&&pts.length>12){pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);ep=encPts(pts);}
  sendEv({t:'shot',pts:ep,sink:rankFar(cup),called:rankFar(b.called),bounce:!!b.bounceAim});}
-function endReplay(b){const c=b.rtarget;const shielded=!!(c&&c.alive&&c.shield&&online&&!net.mode2&&b.owner===1);if(online&&!net.mode2&&b.owner===1)sendEv({t:'verdict',sink:!!(c&&c.alive)&&!shielded});if(shielded){b.done=true;b.missed=true;phase='result';timer=.5;buzz(20);setMessage('🛡️ Blocked by your shield!');return;}if(c&&c.alive){b.x=c.x;b.z=c.z;startSink(b,c,c.x,c.z);}else{b.done=true;b.missed=true;phase='result';timer=.5;setMessage('Opponent missed.');}}
+function endReplay(b){const c=b.rtarget;const shielded=!!(c&&c.alive&&c.shield&&online&&!net.mode2&&b.owner===1);if(online&&!net.mode2&&b.owner===1){cups.forEach(v=>{if(v.side==='near')v.shield=false;});sendEv({t:'shieldDown'});}if(online&&!net.mode2&&b.owner===1)sendEv({t:'verdict',sink:!!(c&&c.alive)&&!shielded});if(shielded){b.done=true;b.missed=true;phase='result';timer=.5;buzz(20);setMessage('🛡️ Blocked by your shield!');return;}if(c&&c.alive){b.x=c.x;b.z=c.z;startSink(b,c,c.x,c.z);}else{b.done=true;b.missed=true;phase='result';timer=.5;setMessage('Opponent missed.');}}
 function playOppShot(ev){const pts=decPts(ev.pts).map(p=>[-p[0],p[1],10-p[2]]);if(!pts.length)pts.push([0,.48,9.55]);if(pts.length<2)pts.push(pts[0]);
  const tg=nearByRank(ev.sink),called=nearByRank(ev.called),last=pts[pts.length-1];cpuLastMade=false;if(called)cpuLonerUsed=true;
  ball={fire:cpuOnFire,x:pts[0][0],y:pts[0][1],z:pts[0][2],vx:0,vy:0,vz:0,owner:1,done:false,trail:[],age:0,hitGround:false,rest:0,sinkCup:null,called:called,bounceAim:!!ev.bounce,rtarget:tg,replay:{pts,clock:0,off:tg?[tg.x-last[0],tg.z-last[2]]:null}};
@@ -417,6 +417,7 @@ function processEv(ev){ if(net.mode2){processEv2(ev);return;}
  else if(ev.t==='swat'){applyRivalSwat(ev);}
  else if(ev.t==='verdict'){applyVerdict(ev);}
  else if(ev.t==='shield'){applyRemoteShield(ev);}
+ else if(ev.t==='shieldDown'){cups.forEach(v=>{if(v.side==='far')v.shield=false;});}
  else if(ev.t==='new'){net.game=ev.game;net.applying=true;try{restart();}finally{net.applying=false;}}}
 function applyVerdict(ev){if(!(phase==='swatwait'&&ball&&ball.owner===0))return;ball.verdict=!!ev.sink;}
 function applyRivalSwat(ev){const dir=ev.dir,hit=!!ev.hit;if(!(phase==='swatwait'&&ball&&ball.owner===0))return;
